@@ -1,66 +1,247 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trablho_final/module/dashboard/state/atendimento_cubit.dart';
+import 'package:trablho_final/module/dashboard/domain/models/atendimento_model.dart';
+import 'package:trablho_final/module/dashboard/view/atendimento_form_page.dart';
+import 'package:trablho_final/module/dashboard/view/orders_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => AtendimentoCubit()..carregarAtendimentos(),
+      child: const _DashboardView(),
+    );
+  }
+}
+
+class _DashboardView extends StatefulWidget {
+  const _DashboardView({super.key});
+
+  @override
+  State<_DashboardView> createState() => _DashboardViewState();
+}
+
+class _DashboardViewState extends State<_DashboardView> {
+  String _statusFiltro = 'todos';
+  bool _apenasAtivos = false;
+
+  static const List<String> _opcoesStatus = [
+    'todos',
+    'pendente',
+    'em andamento',
+    'finalizado',
+  ];
+
+  List<AtendimentoModel> _aplicarFiltros(List<AtendimentoModel> lista) {
+    var filtrada = lista;
+    if (_statusFiltro != 'todos') {
+      filtrada = filtrada.where((a) => a.status == _statusFiltro).toList();
+    }
+    if (_apenasAtivos) {
+      filtrada = filtrada.where((a) => a.ativo).toList();
+    }
+    return filtrada;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<AtendimentoCubit>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gerenciador de Atendimentos'),
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            // Botões principais
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
               children: [
                 ElevatedButton.icon(
                   icon: const Icon(Icons.add),
                   label: const Text('Novo Atendimento'),
-                  onPressed: () {
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider.value(
+                          value: cubit,
+                          child: const AtendimentoFormPage(),
+                        ),
+                      ),
+                    );
+                    cubit.carregarAtendimentos();
                   },
                 ),
                 ElevatedButton.icon(
-                  icon: const Icon(Icons.settings),
+                  icon: const Icon(Icons.list_alt),
                   label: const Text('Ordens de Serviço'),
                   onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const OrdersPage()),
+                    );
                   },
                 ),
               ],
             ),
-            const SizedBox(height: 20),
 
+            const SizedBox(height: 12),
             const Divider(),
+            const SizedBox(height: 8),
 
-            const SizedBox(height: 10),
-            const Align(
+            // Filtros
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                const Text('Filtrar por status:'),
+                DropdownButton<String>(
+                  value: _statusFiltro,
+                  items: _opcoesStatus
+                      .map((s) => DropdownMenuItem(
+                            value: s,
+                            child: Text(s[0].toUpperCase() + s.substring(1)),
+                          ))
+                      .toList(),
+                  onChanged: (v) {
+                    setState(() {
+                      _statusFiltro = v ?? 'todos';
+                    });
+                  },
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Apenas ativos'),
+                    const SizedBox(width: 8),
+                    Switch(
+                      value: _apenasAtivos,
+                      onChanged: (v) => setState(() => _apenasAtivos = v),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  tooltip: 'Recarregar lista',
+                  onPressed: () => cubit.carregarAtendimentos(),
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Lista de Atendimentos',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                'Lista de Atendimentos (${_statusFiltro == 'todos' ? 'Todos' : _statusFiltro})',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
 
-            // Listagem
+            // Lista principal
             Expanded(
-              child: ListView.builder(
-                itemCount: 5,
-                itemBuilder: (context, index) {
-                  return Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.assignment),
-                      title: Text('Atendimento #${index + 1}'),
-                      subtitle: const Text('Status: Em andamento'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
+              child: BlocBuilder<AtendimentoCubit, AtendimentoState>(
+                builder: (context, state) {
+                  if (state is AtendimentoLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (state is AtendimentoLoaded) {
+                    final listaFiltrada = _aplicarFiltros(state.lista);
+                    if (listaFiltrada.isEmpty) {
+                      return const Center(child: Text('Nenhum atendimento encontrado.'));
+                    }
+
+                    return ListView.builder(
+                      itemCount: listaFiltrada.length,
+                      itemBuilder: (context, index) {
+                        final atendimento = listaFiltrada[index];
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          child: ListTile(
+                            leading: Icon(
+                              atendimento.ativo ? Icons.check_circle : Icons.cancel,
+                              color: atendimento.ativo ? Colors.green : Colors.red,
+                            ),
+                            title: Text(atendimento.titulo),
+                            subtitle: Text('Status: ${atendimento.status}'),
+                            trailing: Wrap(
+                              spacing: 4,
+                              children: [
+                                Switch(
+                                  value: atendimento.ativo,
+                                  onChanged: (valor) async {
+                                    await cubit.alternarAtivo(atendimento.id!, valor);
+                                    cubit.carregarAtendimentos();
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () async {
+                                    if (atendimento.status == 'em andamento') {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Não é possível excluir um atendimento em andamento.')),
+                                      );
+                                      return;
+                                    }
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (_) => AlertDialog(
+                                        title: const Text('Confirmar exclusão'),
+                                        content: Text('Deseja excluir "${atendimento.titulo}"?'),
+                                        actions: [
+                                          TextButton(
+                                              onPressed: () => Navigator.pop(context, false),
+                                              child: const Text('Cancelar')),
+                                          ElevatedButton(
+                                              onPressed: () => Navigator.pop(context, true),
+                                              child: const Text('Excluir')),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      await cubit.excluirAtendimento(atendimento.id!);
+                                      cubit.carregarAtendimentos();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Atendimento excluído.')),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BlocProvider.value(
+                                    value: cubit,
+                                    child: AtendimentoFormPage(atendimentoExistente: atendimento),
+                                  ),
+                                ),
+                              );
+                              cubit.carregarAtendimentos();
+                            },
+                          ),
+                        );
                       },
-                    ),
-                  );
+                    );
+                  } else if (state is AtendimentoError) {
+                    return Center(child: Text(state.mensagem));
+                  } else {
+                    return const Center(child: Text('Carregando...'));
+                  }
                 },
               ),
             ),
