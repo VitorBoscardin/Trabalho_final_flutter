@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trablho_final/module/dashboard/state/atendimento_cubit.dart';
 import 'package:trablho_final/module/dashboard/domain/models/atendimento_model.dart';
 import 'package:trablho_final/module/dashboard/view/atendimento_form_page.dart';
-import 'package:trablho_final/module/dashboard/view/orders_page.dart';
+import 'package:trablho_final/module/dashboard/view/ordens_servico_page.dart';
+import 'package:trablho_final/module/dashboard/view/atendimento_detalhes_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -87,7 +88,12 @@ class _DashboardViewState extends State<_DashboardView> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const OrdersPage()),
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider.value(
+                          value: cubit,
+                          child: const OrdensServicoPage(),
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -110,7 +116,8 @@ class _DashboardViewState extends State<_DashboardView> {
                   items: _opcoesStatus
                       .map((s) => DropdownMenuItem(
                             value: s,
-                            child: Text(s[0].toUpperCase() + s.substring(1)),
+                            child:
+                                Text(s[0].toUpperCase() + s.substring(1)),
                           ))
                       .toList(),
                   onChanged: (v) {
@@ -144,7 +151,8 @@ class _DashboardViewState extends State<_DashboardView> {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Lista de Atendimentos (${_statusFiltro == 'todos' ? 'Todos' : _statusFiltro})',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
 
@@ -159,7 +167,8 @@ class _DashboardViewState extends State<_DashboardView> {
                   } else if (state is AtendimentoLoaded) {
                     final listaFiltrada = _aplicarFiltros(state.lista);
                     if (listaFiltrada.isEmpty) {
-                      return const Center(child: Text('Nenhum atendimento encontrado.'));
+                      return const Center(
+                          child: Text('Nenhum atendimento encontrado.'));
                     }
 
                     return ListView.builder(
@@ -171,50 +180,83 @@ class _DashboardViewState extends State<_DashboardView> {
                           margin: const EdgeInsets.symmetric(vertical: 6),
                           child: ListTile(
                             leading: Icon(
-                              atendimento.ativo ? Icons.check_circle : Icons.cancel,
-                              color: atendimento.ativo ? Colors.green : Colors.red,
+                              atendimento.ativo
+                                  ? Icons.check_circle
+                                  : Icons.cancel,
+                              color: atendimento.ativo
+                                  ? Colors.green
+                                  : Colors.red,
                             ),
                             title: Text(atendimento.titulo),
-                            subtitle: Text('Status: ${atendimento.status}'),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Status: ${atendimento.status}'),
+                                if (atendimento.local != null &&
+                                    atendimento.local!.isNotEmpty)
+                                  Text('Local: ${atendimento.local}'),
+                                if (atendimento.hora != null &&
+                                    atendimento.hora!.isNotEmpty)
+                                  Text('Hora: ${atendimento.hora}'),
+                              ],
+                            ),
                             trailing: Wrap(
                               spacing: 4,
                               children: [
                                 Switch(
                                   value: atendimento.ativo,
                                   onChanged: (valor) async {
-                                    await cubit.alternarAtivo(atendimento.id!, valor);
+                                    await cubit.alternarAtivo(
+                                        atendimento.id!, valor);
                                     cubit.carregarAtendimentos();
                                   },
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
                                   onPressed: () async {
-                                    if (atendimento.status == 'em andamento') {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Não é possível excluir um atendimento em andamento.')),
+                                    if (atendimento.status ==
+                                        'em andamento') {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Não é possível excluir um atendimento em andamento.'),
+                                        ),
                                       );
                                       return;
                                     }
-                                    final confirm = await showDialog<bool>(
+                                    final confirm =
+                                        await showDialog<bool>(
                                       context: context,
                                       builder: (_) => AlertDialog(
-                                        title: const Text('Confirmar exclusão'),
-                                        content: Text('Deseja excluir "${atendimento.titulo}"?'),
+                                        title:
+                                            const Text('Confirmar exclusão'),
+                                        content: Text(
+                                            'Deseja excluir "${atendimento.titulo}"?'),
                                         actions: [
                                           TextButton(
-                                              onPressed: () => Navigator.pop(context, false),
-                                              child: const Text('Cancelar')),
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
+                                            child: const Text('Cancelar'),
+                                          ),
                                           ElevatedButton(
-                                              onPressed: () => Navigator.pop(context, true),
-                                              child: const Text('Excluir')),
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
+                                            child: const Text('Excluir'),
+                                          ),
                                         ],
                                       ),
                                     );
                                     if (confirm == true) {
-                                      await cubit.excluirAtendimento(atendimento.id!);
+                                      await cubit.excluirAtendimento(
+                                          atendimento.id!);
                                       cubit.carregarAtendimentos();
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Atendimento excluído.')),
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'Atendimento excluído.')),
                                       );
                                     }
                                   },
@@ -227,7 +269,8 @@ class _DashboardViewState extends State<_DashboardView> {
                                 MaterialPageRoute(
                                   builder: (_) => BlocProvider.value(
                                     value: cubit,
-                                    child: AtendimentoFormPage(atendimentoExistente: atendimento),
+                                    child: AtendimentoDetalhesPage(
+                                        atendimento: atendimento),
                                   ),
                                 ),
                               );
