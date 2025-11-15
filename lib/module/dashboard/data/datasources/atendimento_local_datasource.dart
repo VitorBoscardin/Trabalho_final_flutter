@@ -23,7 +23,7 @@ class AtendimentoLocalDataSource {
 
     return openDatabase(
       path,
-      version: 2, // 🔥 ATUALIZADO PARA 2 PARA PERMITIR MIGRAÇÃO
+      version: 2, 
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE $_tableName (
@@ -38,8 +38,7 @@ class AtendimentoLocalDataSource {
           );
         ''');
       },
-
-      /// 🔥 MIGRAÇÃO — caso o banco antigo exista sem a coluna RELATORIO
+      
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await db.execute(

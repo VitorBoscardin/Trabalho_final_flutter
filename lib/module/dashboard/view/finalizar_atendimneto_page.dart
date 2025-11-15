@@ -25,10 +25,10 @@ class _FinalizarAtendimentoPageState extends State<FinalizarAtendimentoPage> {
   void initState() {
     super.initState();
 
-    /// Se já tiver relatório salvo, deixa no campo
+    
     _observacoesController.text = widget.atendimento.relatorio ?? '';
 
-    /// Se já tiver foto salva, mostra também
+    
     _fotoFinalizacao = widget.atendimento.foto;
   }
 
@@ -45,7 +45,7 @@ class _FinalizarAtendimentoPageState extends State<FinalizarAtendimentoPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// Informações gerais
+          
             Text(
               widget.atendimento.titulo,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -55,7 +55,7 @@ class _FinalizarAtendimentoPageState extends State<FinalizarAtendimentoPage> {
             Text("Hora: ${widget.atendimento.hora ?? 'Não informado'}"),
             const Divider(height: 32),
 
-            /// Foto
+            
             Text(
               "Foto da finalização",
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -119,7 +119,7 @@ class _FinalizarAtendimentoPageState extends State<FinalizarAtendimentoPage> {
 
             const SizedBox(height: 20),
 
-            /// OBSERVAÇÕES
+          
             TextField(
               controller: _observacoesController,
               maxLines: 5,
@@ -131,7 +131,7 @@ class _FinalizarAtendimentoPageState extends State<FinalizarAtendimentoPage> {
 
             const SizedBox(height: 30),
 
-            /// FINALIZAR
+            
             Center(
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.check_circle),

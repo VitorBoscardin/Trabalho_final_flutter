@@ -186,11 +186,11 @@ class _DashboardViewState extends State<_DashboardView> {
                               ],
                             ),
 
-                            // ------- TRAILING ATUALIZADO -------
+              
                             trailing: Wrap(
                               spacing: 4,
                               children: [
-                                // EDITAR — agora somente quando pendente
+                                // EDITAR
                                 if (atendimento.status == "pendente")
                                   IconButton(
                                     icon: const Icon(Icons.edit,
@@ -221,7 +221,7 @@ class _DashboardViewState extends State<_DashboardView> {
                                   },
                                 ),
 
-                                // EXCLUIR — não pode excluir em andamento
+                                // EXCLUIR 
                                 IconButton(
                                   icon: const Icon(Icons.delete,
                                       color: Colors.red),
@@ -268,7 +268,7 @@ class _DashboardViewState extends State<_DashboardView> {
                               ],
                             ),
 
-                            // ON TAP — navega de acordo com o status
+                            
                             onTap: () async {
                               if (atendimento.status == 'pendente') {
                                 await Navigator.push(

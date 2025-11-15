@@ -44,7 +44,6 @@ class AtendimentoDetalhesPage extends StatelessWidget {
 
             const Spacer(),
 
-            // 🔥 Botão só aparece se estiver pendente
             if (atendimento.status == "pendente")
               SizedBox(
                 width: double.infinity,
