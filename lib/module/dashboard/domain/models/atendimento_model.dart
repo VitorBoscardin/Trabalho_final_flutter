@@ -6,6 +6,7 @@ class AtendimentoModel {
   final String? foto;
   final String? local;
   final String? hora;
+  final String? relatorio; // <-- adicionamos aqui
 
   AtendimentoModel({
     this.id,
@@ -15,6 +16,7 @@ class AtendimentoModel {
     this.foto,
     this.local,
     this.hora,
+    this.relatorio, // <-- adicionamos aqui
   });
 
   AtendimentoModel copyWith({
@@ -25,6 +27,7 @@ class AtendimentoModel {
     String? foto,
     String? local,
     String? hora,
+    String? relatorio, // <-- adicionamos aqui
   }) {
     return AtendimentoModel(
       id: id ?? this.id,
@@ -34,6 +37,7 @@ class AtendimentoModel {
       foto: foto ?? this.foto,
       local: local ?? this.local,
       hora: hora ?? this.hora,
+      relatorio: relatorio ?? this.relatorio, // <-- adicionamos aqui
     );
   }
 
@@ -46,6 +50,7 @@ class AtendimentoModel {
       foto: map['foto'],
       local: map['local'],
       hora: map['hora'],
+      relatorio: map['relatorio'], // <-- adicionamos aqui
     );
   }
 
@@ -58,6 +63,7 @@ class AtendimentoModel {
       'foto': foto,
       'local': local,
       'hora': hora,
+      'relatorio': relatorio, // <-- adicionamos aqui
     };
   }
 }

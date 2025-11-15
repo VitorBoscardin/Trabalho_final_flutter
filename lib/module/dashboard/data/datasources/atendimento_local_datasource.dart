@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:trablho_final/module/dashboard/domain/models/atendimento_model.dart';
+import '../../domain/models/atendimento_model.dart';
 
 class AtendimentoLocalDataSource {
   static const _databaseName = 'atendimentos.db';
@@ -19,32 +19,32 @@ class AtendimentoLocalDataSource {
   }
 
   Future<Database> _initDatabase() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, _databaseName);
+    final path = join(await getDatabasesPath(), _databaseName);
 
     return openDatabase(
       path,
-      version: 3, // 👈 nova versão pra garantir criação de colunas
+      version: 2, // 🔥 ATUALIZADO PARA 2 PARA PERMITIR MIGRAÇÃO
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE $_tableName (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titulo TEXT,
-            status TEXT,
-            ativo INTEGER,
+            titulo TEXT NOT NULL,
+            status TEXT NOT NULL,
+            ativo INTEGER NOT NULL,
             foto TEXT,
             local TEXT,
-            hora TEXT
-          )
+            hora TEXT,
+            relatorio TEXT   -- 🔥 ADICIONADO
+          );
         ''');
       },
+
+      /// 🔥 MIGRAÇÃO — caso o banco antigo exista sem a coluna RELATORIO
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
-          await db.execute('ALTER TABLE $_tableName ADD COLUMN foto TEXT');
-        }
-        if (oldVersion < 3) {
-          await db.execute('ALTER TABLE $_tableName ADD COLUMN local TEXT');
-          await db.execute('ALTER TABLE $_tableName ADD COLUMN hora TEXT');
+          await db.execute(
+            "ALTER TABLE $_tableName ADD COLUMN relatorio TEXT;",
+          );
         }
       },
     );
@@ -57,7 +57,7 @@ class AtendimentoLocalDataSource {
 
   Future<List<AtendimentoModel>> getAll() async {
     final db = await database;
-    final maps = await db.query(_tableName);
+    final maps = await db.query(_tableName, orderBy: 'id DESC');
     return maps.map((e) => AtendimentoModel.fromMap(e)).toList();
   }
 
@@ -84,15 +84,5 @@ class AtendimentoLocalDataSource {
       where: 'id = ?',
       whereArgs: [id],
     );
-  }
-
-  Future<List<AtendimentoModel>> getByStatus(String status) async {
-    final db = await database;
-    final maps = await db.query(
-      _tableName,
-      where: 'status = ?',
-      whereArgs: [status],
-    );
-    return maps.map((e) => AtendimentoModel.fromMap(e)).toList();
   }
 }

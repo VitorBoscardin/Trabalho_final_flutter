@@ -5,7 +5,8 @@ import '../domain/models/atendimento_model.dart';
 part 'atendimento_state.dart';
 
 class AtendimentoCubit extends Cubit<AtendimentoState> {
-  final AtendimentoLocalDataSource _dataSource = AtendimentoLocalDataSource.instance;
+  final AtendimentoLocalDataSource _dataSource =
+      AtendimentoLocalDataSource.instance;
 
   AtendimentoCubit() : super(AtendimentoInitial());
 
@@ -14,21 +15,18 @@ class AtendimentoCubit extends Cubit<AtendimentoState> {
     try {
       final lista = await _dataSource.getAll();
       emit(AtendimentoLoaded(lista));
-    } catch (e, st) {
+    } catch (e) {
       emit(AtendimentoError('Erro ao carregar atendimentos: $e'));
-      print('carregarAtendimentos error: $e\n$st');
     }
   }
 
   Future<void> adicionarAtendimento(AtendimentoModel atendimento) async {
     emit(AtendimentoLoading());
     try {
-      print('adicionarAtendimento chamado: ${atendimento.titulo}');
       await _dataSource.insert(atendimento);
       await carregarAtendimentos();
-    } catch (e, st) {
+    } catch (e) {
       emit(AtendimentoError('Erro ao adicionar atendimento: $e'));
-      print('adicionarAtendimento error: $e\n$st');
     }
   }
 

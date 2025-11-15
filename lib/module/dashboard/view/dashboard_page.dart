@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trablho_final/module/dashboard/state/atendimento_cubit.dart';
 import 'package:trablho_final/module/dashboard/domain/models/atendimento_model.dart';
 import 'package:trablho_final/module/dashboard/view/atendimento_form_page.dart';
-import 'package:trablho_final/module/dashboard/view/ordens_servico_page.dart';
 import 'package:trablho_final/module/dashboard/view/atendimento_detalhes_page.dart';
+import 'package:trablho_final/module/dashboard/view/finalizar_atendimneto_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -60,7 +60,7 @@ class _DashboardViewState extends State<_DashboardView> {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            // Botões principais
+            // NOVO ATENDIMENTO
             Wrap(
               spacing: 12,
               runSpacing: 8,
@@ -82,21 +82,6 @@ class _DashboardViewState extends State<_DashboardView> {
                     cubit.carregarAtendimentos();
                   },
                 ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.list_alt),
-                  label: const Text('Ordens de Serviço'),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BlocProvider.value(
-                          value: cubit,
-                          child: const OrdensServicoPage(),
-                        ),
-                      ),
-                    );
-                  },
-                ),
               ],
             ),
 
@@ -104,7 +89,7 @@ class _DashboardViewState extends State<_DashboardView> {
             const Divider(),
             const SizedBox(height: 8),
 
-            // Filtros
+            // FILTROS
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 12,
@@ -116,8 +101,7 @@ class _DashboardViewState extends State<_DashboardView> {
                   items: _opcoesStatus
                       .map((s) => DropdownMenuItem(
                             value: s,
-                            child:
-                                Text(s[0].toUpperCase() + s.substring(1)),
+                            child: Text(s[0].toUpperCase() + s.substring(1)),
                           ))
                       .toList(),
                   onChanged: (v) {
@@ -151,14 +135,13 @@ class _DashboardViewState extends State<_DashboardView> {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Lista de Atendimentos (${_statusFiltro == 'todos' ? 'Todos' : _statusFiltro})',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
 
             const SizedBox(height: 8),
 
-            // Lista principal
+            // LISTA
             Expanded(
               child: BlocBuilder<AtendimentoCubit, AtendimentoState>(
                 builder: (context, state) {
@@ -166,9 +149,11 @@ class _DashboardViewState extends State<_DashboardView> {
                     return const Center(child: CircularProgressIndicator());
                   } else if (state is AtendimentoLoaded) {
                     final listaFiltrada = _aplicarFiltros(state.lista);
+
                     if (listaFiltrada.isEmpty) {
                       return const Center(
-                          child: Text('Nenhum atendimento encontrado.'));
+                        child: Text('Nenhum atendimento encontrado.'),
+                      );
                     }
 
                     return ListView.builder(
@@ -200,9 +185,33 @@ class _DashboardViewState extends State<_DashboardView> {
                                   Text('Hora: ${atendimento.hora}'),
                               ],
                             ),
+
+                            // ------- TRAILING ATUALIZADO -------
                             trailing: Wrap(
                               spacing: 4,
                               children: [
+                                // EDITAR — agora somente quando pendente
+                                if (atendimento.status == "pendente")
+                                  IconButton(
+                                    icon: const Icon(Icons.edit,
+                                        color: Colors.blue),
+                                    onPressed: () async {
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => BlocProvider.value(
+                                            value: cubit,
+                                            child: AtendimentoFormPage(
+                                              atendimentoExistente: atendimento,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                      cubit.carregarAtendimentos();
+                                    },
+                                  ),
+
+                                // ATIVAR / DESATIVAR
                                 Switch(
                                   value: atendimento.ativo,
                                   onChanged: (valor) async {
@@ -211,14 +220,14 @@ class _DashboardViewState extends State<_DashboardView> {
                                     cubit.carregarAtendimentos();
                                   },
                                 ),
+
+                                // EXCLUIR — não pode excluir em andamento
                                 IconButton(
                                   icon: const Icon(Icons.delete,
                                       color: Colors.red),
                                   onPressed: () async {
-                                    if (atendimento.status ==
-                                        'em andamento') {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                    if (atendimento.status == 'em andamento') {
+                                      ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(
                                           content: Text(
                                               'Não é possível excluir um atendimento em andamento.'),
@@ -226,8 +235,8 @@ class _DashboardViewState extends State<_DashboardView> {
                                       );
                                       return;
                                     }
-                                    final confirm =
-                                        await showDialog<bool>(
+
+                                    final confirm = await showDialog<bool>(
                                       context: context,
                                       builder: (_) => AlertDialog(
                                         title:
@@ -248,32 +257,59 @@ class _DashboardViewState extends State<_DashboardView> {
                                         ],
                                       ),
                                     );
+
                                     if (confirm == true) {
                                       await cubit.excluirAtendimento(
                                           atendimento.id!);
                                       cubit.carregarAtendimentos();
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'Atendimento excluído.')),
-                                      );
                                     }
                                   },
                                 ),
                               ],
                             ),
+
+                            // ON TAP — navega de acordo com o status
                             onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => BlocProvider.value(
-                                    value: cubit,
-                                    child: AtendimentoDetalhesPage(
-                                        atendimento: atendimento),
+                              if (atendimento.status == 'pendente') {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BlocProvider.value(
+                                      value: cubit,
+                                      child: AtendimentoDetalhesPage(
+                                        atendimento: atendimento,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              );
+                                );
+                              } else if (atendimento.status ==
+                                  'em andamento') {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BlocProvider.value(
+                                      value: cubit,
+                                      child: FinalizarAtendimentoPage(
+                                        atendimento: atendimento,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              } else if (atendimento.status ==
+                                  'finalizado') {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BlocProvider.value(
+                                      value: cubit,
+                                      child: FinalizarAtendimentoPage(
+                                        atendimento: atendimento,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+
                               cubit.carregarAtendimentos();
                             },
                           ),
